@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Xml.Serialization;
 
 namespace Client_Kurlishuk
@@ -19,6 +20,8 @@ namespace Client_Kurlishuk
         static void Main(string[] args)
         {
             OnSettings();
+            Thread tCheckToken = new Thread(CheckToken);
+            tCheckToken.Start();
             while (true) { SetCommand(); }
         }
 
@@ -75,6 +78,49 @@ namespace Client_Kurlishuk
                     Console.WriteLine("Recieved connection token: " + ClientToken);
                 }
             }
+        }
+
+        static void CheckToken()
+        {
+            while (true) { 
+                if(ClientToken != "")
+                {
+                    IPEndPoint EndPoint = new IPEndPoint(ServerIpAddress, ServerPort);
+                    Socket Socket = new Socket(
+                        AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    try
+                    {
+                        Socket.Connect(EndPoint);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine("Error: " + ex.Message);
+                    }
+                    if (Socket.Connected)
+                    {
+                       
+
+                        Socket.Send(Encoding.UTF8.GetBytes(ClientToken));
+
+
+                        byte[] Bytes = new byte[10485760];
+                        int ByteRec = Socket.Receive(Bytes);
+
+                        string Response = Encoding.UTF8.GetString(Bytes, 0, ByteRec);
+
+                        if (Response == "/disconnect")
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine("The client is disconnected from server: ");
+                            ClientToken = string.Empty;
+                        }
+                        
+                    }
+                }
+                Thread.Sleep(1000);
+            }
+            
         }
 
         static void GetStatus()
