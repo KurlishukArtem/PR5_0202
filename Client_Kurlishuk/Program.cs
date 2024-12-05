@@ -1,6 +1,9 @@
 ﻿using System;
+using System.ComponentModel.Design;
 using System.IO;
 using System.Net;
+using System.Net.Sockets;
+using System.Text;
 using System.Xml.Serialization;
 
 namespace Client_Kurlishuk
@@ -16,11 +19,90 @@ namespace Client_Kurlishuk
         static void Main(string[] args)
         {
             OnSettings();
+            while (true) { SetCommand(); }
         }
 
         static void SetCommand()
         {
+            Console.ForegroundColor = ConsoleColor.Red;
+            string Command = Console.ReadLine();
+            if (Command == "/config")
+            {
+                File.Delete(Directory.GetCurrentDirectory() + "/.config");
+                OnSettings();
 
+            }
+            else if (Command == "/connect") ConnectServer();
+            else if (Command == "/status") GetStatus();
+            else if (Command == "/help") Help();
+        }
+
+        static void ConnectServer() 
+        {
+            IPEndPoint EndPoint = new IPEndPoint(ServerIpAddress, ServerPort);
+            Socket Socket = new Socket(
+                AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            try
+            {
+                Socket.Connect(EndPoint);
+            }
+            catch (Exception ex) 
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("Error: " + ex.Message);
+            }
+            if (Socket.Connected) {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Connection to server sucsessful: ");
+
+                Socket.Send(Encoding.UTF8.GetBytes("/token"));
+
+
+                byte[] Bytes = new byte[10485760];
+                int ByteRec = Socket.Receive(Bytes);
+
+                string Response = Encoding.UTF8.GetString(Bytes, 0, ByteRec);
+
+                if (Response == "/limit")
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("not enoght free space on server: ");
+                }
+                else {
+                    ClientToken = Response;
+                    ClientDateConnection = DateTime.Now;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Recieved connection token: " + ClientToken);
+                }
+            }
+        }
+
+        static void GetStatus()
+        {
+            int Duration = (int)DateTime.Now.Subtract(ClientDateConnection).TotalSeconds;
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine($"Client: {ClientToken}. Time Connection: {ClientDateConnection.ToString("HH:mm:ss dd.MM")}, " + 
+                $"Duration: {Duration}");
+        }
+
+        static void Help() {
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("Commands to the server: ");
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/config: ");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("- set initial settings");
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/connect: ");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("- connection to the server");
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("/status: ");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("- show list users");
         }
 
         static void OnSettings()
