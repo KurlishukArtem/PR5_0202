@@ -83,7 +83,7 @@ namespace Client_Kurlishuk
         static void CheckToken()
         {
             while (true) { 
-                if(ClientToken != "")
+                if(!String.IsNullOrEmpty(ClientToken))
                 {
                     IPEndPoint EndPoint = new IPEndPoint(ServerIpAddress, ServerPort);
                     Socket Socket = new Socket(
